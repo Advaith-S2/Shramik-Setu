@@ -58,18 +58,19 @@ a row across 2 sessions if needed and just update Current State mid-row.
 *(update this section every session — this is the single source of truth)*
 
 **Last updated:** 2026-08-05
-**Day/Phase reached:** Day 1 — Repo scaffold, backend routers/services, Supabase schema live, frontend setup complete.
+**Day/Phase reached:** Day 1 — Complete. Repo scaffold, backend routers/services, Supabase schema live, frontend setup complete.
 **What works right now:**
 - FastAPI backend scaffold with all endpoints stubbed out
 - Backend health tests passing
-- Supabase schema with 15 tables created
+- Supabase schema with 15 tables live
 - Frontend Next.js scaffold initialized with shadcn/ui and TailwindCSS
 - Frontend routes stubbed out for all user roles
 - Environment placeholders `.env.example` and `.env.local.example` created
+- Supabase clients for both frontend and backend successfully connected to a live database
 
 **Known gaps / deferred items:**
 - Auth integration (Day 2)
-- External backend deployment (Next session)
+- External backend deployment (Day 2)
 
 ---
 
