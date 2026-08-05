@@ -57,20 +57,26 @@ a row across 2 sessions if needed and just update Current State mid-row.
 ## Current State
 *(update this section every session — this is the single source of truth)*
 
-**Last updated:** _(date)_
-**Day/Phase reached:** _(e.g. "Day 1 — schema done, deploy pipeline pending")_
+**Last updated:** 2026-08-05
+**Day/Phase reached:** Day 1 — Repo scaffold, backend routers/services, Supabase schema live, frontend setup complete.
 **What works right now:**
-- _(bullet list)_
+- FastAPI backend scaffold with all endpoints stubbed out
+- Backend health tests passing
+- Supabase schema with 15 tables created
+- Frontend Next.js scaffold initialized with shadcn/ui and TailwindCSS
+- Frontend routes stubbed out for all user roles
+- Environment placeholders `.env.example` and `.env.local.example` created
 
 **Known gaps / deferred items:**
-- _(bullet list — anything you skipped on purpose)_
+- Auth integration (Day 2)
+- External backend deployment (Next session)
 
 ---
 
 ## Next Up
 *(the very first thing the next session should do — be specific)*
 
-- _(e.g. "Finish Render deploy for FastAPI backend, verify /health endpoint responds, then start M-01 auth")_
+- Finish Render deploy for FastAPI backend, verify /health endpoint responds, then start M-01 auth (Day 2)
 
 ---
 
@@ -80,24 +86,15 @@ sessions from "fixing" it back)*
 
 | Date | Deviation | Reason |
 |---|---|---|
-| | | |
+| 2026-08-05 | Changed `Geist` font to `Inter` | `Geist` font failed to resolve via `next/font/google` in Next.js 14.2.35. |
 
 ---
 
 ## Session Log
 
-### Session 1 — _(date)_
-- **Model(s) used:** _(tier + name)_
-- **Goal:** 
-- **Done:**
-- **Blockers:**
-- **Next:**
-
-### Session 2 — _(date)_
-- **Model(s) used:**
-- **Goal:**
-- **Done:**
-- **Blockers:**
-- **Next:**
-
-<!-- Add a new ### Session N block each time you finish a session -->
+### Session 1 — 2026-08-05
+- **Model(s) used:** Gemini 3.1 Pro (Low)
+- **Goal:** Finish Day 1 project setup
+- **Done:** Completed Next.js scaffold, fixed lint and build errors, initialized shadcn/ui, created environment file placeholders, verified backend health check.
+- **Blockers:** None
+- **Next:** Proceed with Day 2 - Auth integration and backend deployment.
