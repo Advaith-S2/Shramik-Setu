@@ -23,7 +23,7 @@
 | Version | Date | Author | Changes |
 |---|---|---|---|
 | 1.0 | Jul 2026 | Team | Initial draft from briefing document |
-| 2.0 | Aug 2026 | PM Lead | Complete rewrite. Scoped to 14 MVP modules. Added GPS geofencing, multilingual support. Removed AI/ML, wallet, reputation scoring. Restructured for buildability. |
+| 2.0 | Aug 2026 | PM Lead | Complete rewrite. Scoped to 15 MVP modules. Added GPS geofencing, multilingual support, digital wage wallet. Removed AI/ML, reputation scoring. Restructured for buildability. |
 
 ---
 
@@ -61,7 +61,7 @@
 
 **What it is:** A 12-week, 4-engineer college mini-project demonstrating end-to-end digital employment governance for the unorganized sector.
 
-**What it is not:** A production government platform. It does not integrate real payment gateways, Aadhaar, biometrics, SMS, or AI/ML. These are explicitly future scope.
+**What it is not:** A production government platform. It does not integrate real financial wallets, real payment gateways, Aadhaar, biometrics, SMS, or AI/ML. These are explicitly future scope.
 
 **Core workflow (frozen, not to be redesigned):**
 
@@ -78,7 +78,11 @@ Worker marks attendance (PIN + GPS check)
        ↓
 System calculates wages automatically
        ↓
+Wage credited to Digital Wage Wallet (Earned/Pending)
+       ↓
 Contractor records payment in ledger
+       ↓
+Wallet transaction reflects payment received
        ↓
 Employment passport updates
        ↓
@@ -89,7 +93,7 @@ Inspector reviews and resolves dispute
 
 **Tech stack:** Next.js 14 · TypeScript · TailwindCSS · shadcn/ui · FastAPI (Python) · PostgreSQL via Supabase · Supabase Auth & Storage · ReportLab (PDF) · qrcode (Python) · Chart.js · next-intl (i18n) · Vercel + Railway
 
-**14 MVP modules.** 15 database tables. ~45 API endpoints. 3 languages. 0 AI models.
+**15 MVP modules.** 17 database tables. ~55 API endpoints. 3 languages. 0 AI models.
 
 ---
 
@@ -299,7 +303,7 @@ The following are **not** in MVP and will not be added mid-project:
 <a id="6"></a>
 ## 6. Feature Prioritization (MoSCoW)
 
-### Must Have (MVP – all 14 modules)
+### Must Have (MVP – all 15 modules)
 
 | # | Module | Justification |
 |---|---|---|
@@ -317,6 +321,7 @@ The following are **not** in MVP and will not be added mid-project:
 | 12 | Inspector Dashboard | Compliance visibility |
 | 13 | Notifications | User engagement; workflow continuity |
 | 14 | Audit Logs | Accountability; cross-cutting |
+| 15 | Digital Wage Wallet | Internal earnings ledger; transparency |
 
 ### Should Have (if time permits, Week 11-12)
 
@@ -446,6 +451,7 @@ shramiksetu/
 │   │   │   │   ├── attendance/
 │   │   │   │   ├── contracts/
 │   │   │   │   ├── payments/
+│   │   │   │   ├── wallet/
 │   │   │   │   ├── passport/
 │   │   │   │   └── disputes/
 │   │   │   ├── contractor/
@@ -495,6 +501,7 @@ shramiksetu/
 │   │   │   ├── attendance.py
 │   │   │   ├── wages.py
 │   │   │   ├── payments.py
+│   │   │   ├── wallets.py
 │   │   │   ├── disputes.py
 │   │   │   ├── passport.py
 │   │   │   ├── inspector.py
@@ -2133,6 +2140,71 @@ Browser requests GPS permission
 
 ---
 
+### M-15: Digital Wage Wallet
+
+**Purpose:** Provide workers with a transparent, consolidated view of their earnings, pending wages, and received payments as an internal digital ledger.
+
+**Business Goal:** Simplify earnings visibility and payment tracking for workers without requiring complex bank integrations.
+
+**Actors:** Worker (views), System (updates), Contractor (records payments affecting it).
+
+**Preconditions:** Worker has wage records or payment ledger entries.
+
+**User Story:**
+> As a worker, I want to see my total earned wages, how much is still pending, and a history of all payment transactions in one place, so I know exactly what I am owed.
+
+**Important Distinction:**
+- **Earned Wage**: Money the worker has earned based on verified attendance and the agreed contract wage.
+- **Pending Wage**: Earned wages not yet marked as paid.
+- **Paid Wage**: Money the contractor has recorded as paid.
+- **Wallet Balance**: The worker's recorded earnings/payment state inside ShramikSetu. This is NOT actual bank-held money.
+
+**Main Workflow:**
+
+| Step | Trigger | Action | System Response |
+|---|---|---|---|
+| 1 | System | Attendance marked & Wage calculated | System records transaction: `WAGE_CREDIT` in `wallet_transactions`. |
+| 2 | System | Wallet Updated | `pending_wages` and `total_earned` increase. |
+| 3 | Contractor | Records payment in ledger | System records transaction: `PAYMENT_RECEIVED` in `wallet_transactions`. |
+| 4 | System | Wallet Updated | `pending_wages` decreases, `total_paid` increases. |
+| 5 | Worker | Navigates to Wallet | Sees current balance, earned/paid/pending totals, and transaction history. |
+
+**Wallet Transaction Types:**
+- `WAGE_CREDIT`: Added when expected wages are calculated.
+- `PAYMENT_RECEIVED`: Added when a contractor logs a payment.
+- `ADJUSTMENT`: Added if an inspector resolves a dispute changing a balance.
+
+**Acceptance Criteria:**
+- [ ] A worker can view their wallet with Earned, Paid, and Pending totals.
+- [ ] Verified attendance results in an automatically calculated wage credit in the wallet.
+- [ ] Earned wages are reflected correctly in the worker's earnings.
+- [ ] Contractor recorded payment appears in the worker's transaction history.
+- [ ] Wallet totals remain mathematically consistent (`total_earned = total_paid + pending_wages`).
+- [ ] Workers cannot modify their own wallet balances directly.
+- [ ] Unauthorized users cannot access another worker's wallet.
+- [ ] Wallet transactions cannot be silently deleted (immutable).
+- [ ] Wallet UI supports English, Hindi, and Marathi.
+- [ ] All balance-changing actions are auditable.
+
+**API Endpoints:**
+
+| Method | Endpoint | Auth | Role | Description |
+|---|---|---|---|---|
+| GET | `/api/v1/wallets/me` | Bearer | Worker | Get own wallet summary |
+| GET | `/api/v1/wallets/me/transactions` | Bearer | Worker | Get wallet transaction history |
+| GET | `/api/v1/wallets/transactions/{id}` | Bearer | Worker | Get transaction details |
+
+**Database Tables Used:** `wallets`, `wallet_transactions`, `wage_records`, `payment_ledger`, `audit_logs`
+
+**UI Screens:**
+- Worker Wallet screen (Balance card, Total earned/paid/pending, recent transactions, full history).
+
+**Future Enhancements:**
+- Real financial transfers (UPI, NEFT) integration (Phase 2).
+- Automated payment notifications.
+
+---
+
 <a id="9"></a>
 ## 9. Database Design
 
@@ -2245,36 +2317,41 @@ Browser requests GPS permission
     │     │resolved_by     │                                │
     │     └────────────────┘                                │
     │                                                      │
-    │     ┌────────────────┐                                │
-    │     │ notifications  │                                │
-    │     │────────────────│                                │
-    └────>│notification_id │                                │
-          │user_id         │                                │
-          │title, body     │                                │
-          │type, is_read   │                                │
-          │link            │                                │
-          └────────────────┘                                │
-                                                          │
-    ┌────────────────┐    ┌──────────────────┐            │
-    │  audit_logs    │    │user_preferences  │            │
-    │────────────────│    │──────────────────│            │
-    │audit_id        │    │user_id (FK)      │◄───────────┘
-    │user_id         │    │preferred_language│
-    │action          │    │created_at        │
-    │entity_type     │    └──────────────────┘
-    │entity_id       │
-    │details (JSONB) │    ┌──────────────────┐
-    │ip_address      │    │ minimum_wages    │
-    │created_at      │    │ (reference table)│
-    └────────────────┘    │──────────────────│
-                          │state             │
-                          │occupation        │
-                          │wage_rate         │
-                          │effective_date    │
-                          └──────────────────┘
+    │     ┌────────────────┐      ┌──────────────────────┐  │
+    │     │ notifications  │      │       wallets        │  │
+    │     │────────────────│      │──────────────────────│  │
+    └────>│notification_id │      │wallet_id (PK)        │  │
+          │user_id         │      │worker_id (FK)        │◄─┤
+          │title, body     │      │balance               │  │
+          │type, is_read   │      │total_earned          │  │
+          │link            │      │total_paid            │  │
+          └────────────────┘      │pending_wages         │  │
+                                  └──────────┬───────────┘  │
+    ┌────────────────┐    ┌──────────────────│           │  │
+    │  audit_logs    │    │user_preferences  ▼           │  │
+    │────────────────│    │──────────────────│           │  │
+    │audit_id        │    │user_id (FK)      │◄───────────┘ │
+    │user_id         │    │preferred_language│              │
+    │action          │    │created_at        │              │
+    │entity_type     │    └──────────────────┘              │
+    │entity_id       │                                      │
+    │details (JSONB) │    ┌──────────────────────┐          │
+    │ip_address      │    │ wallet_transactions  │          │
+    │created_at      │    │──────────────────────│          │
+    └────────────────┘    │transaction_id (PK)   │          │
+                          │wallet_id (FK)        │          │
+    ┌──────────────────┐  │amount                │          │
+    │ minimum_wages    │  │transaction_type      │          │
+    │ (reference table)│  │reference_id          │          │
+    │──────────────────│  │description           │          │
+    │state             │  │created_at            │          │
+    │occupation        │  └──────────────────────┘          │
+    │wage_rate         │                                    │
+    │effective_date    │                                    │
+    └──────────────────┘                                    │
 ```
 
-### 9.2 Table Count: 15
+### 9.2 Table Count: 17
 
 | # | Table | Purpose |
 |---|---|---|
@@ -2288,11 +2365,13 @@ Browser requests GPS permission
 | 8 | `attendance_verifications` | GPS verification data |
 | 9 | `wage_records` | Auto-calculated wage records |
 | 10 | `payment_ledger` | Payment declarations |
-| 11 | `disputes` | Dispute records |
-| 12 | `notifications` | In-app notifications |
-| 13 | `audit_logs` | Cross-cutting audit trail |
-| 14 | `user_preferences` | Language + settings |
-| 15 | `minimum_wages` | Reference wage table |
+| 11 | `wallets` | Worker earnings and payment balances |
+| 12 | `wallet_transactions` | Immutable transaction log for wallets |
+| 13 | `disputes` | Dispute records |
+| 14 | `notifications` | In-app notifications |
+| 15 | `audit_logs` | Cross-cutting audit trail |
+| 16 | `user_preferences` | Language + settings |
+| 17 | `minimum_wages` | Reference wage table |
 
 ### 9.3 Key Indexes
 
@@ -2422,6 +2501,14 @@ CREATE INDEX idx_audit_user ON audit_logs(user_id);
 | GET | `/payments/{id}` | All | Payment detail |
 | GET | `/payments/{id}/receipt` | Worker, Contractor | Receipt view |
 
+#### Wallets (3)
+
+| Method | Endpoint | Role | Description |
+|---|---|---|---|
+| GET | `/wallets/me` | Worker | Own wallet summary |
+| GET | `/wallets/me/transactions` | Worker | Transaction history |
+| GET | `/wallets/transactions/{id}` | Worker | Transaction details |
+
 #### Disputes (5)
 
 | Method | Endpoint | Role | Description |
@@ -2473,7 +2560,7 @@ CREATE INDEX idx_audit_user ON audit_logs(user_id);
 | PUT | `/admin/users/{id}/role` | Admin | Change role |
 | PUT | `/admin/minimum-wages` | Admin | Update reference |
 
-**Total: ~48 endpoints**
+**Total: ~55 endpoints**
 
 ---
 
@@ -2595,8 +2682,9 @@ CREATE INDEX idx_audit_user ON audit_logs(user_id);
 | 18 | Dispute Queue | Inspector | Filterable list |
 | 19 | Dispute Resolution | Inspector | Evidence, outcome, notes |
 | 20 | Audit Log Viewer | Inspector | Filterable table |
-| 21 | Profile Settings | All | Edit profile, language, photo |
-| 22 | Notifications | All | Bell dropdown, list page |
+| 21 | Worker Wallet | Worker | Balance, transaction history |
+| 22 | Profile Settings | All | Edit profile, language, photo |
+| 23 | Notifications | All | Bell dropdown, list page |
 
 ### 12.3 Empty States
 
@@ -2853,22 +2941,28 @@ Full end-to-end walkthrough rehearsed at least 3 times before final demo. See Se
 
 **Deliverable:** Payment recording works. Passport PDF downloadable. All UI in 3 languages.
 
-#### Sprint 5: Disputes & Inspector (Week 9-10)
+#### Sprint 5: Wallet, Disputes & Inspector (Week 9-10)
+
+> **Note on Compression:** To protect the Week 11-12 integration period (Risk R-1), the Digital Wage Wallet (M-15) has been pulled into this sprint. This makes Sprint 5 the most heavily loaded sprint of the project.
 
 | Task | Owner | Est. |
 |---|---|---|
 | Dispute raise (worker) | Dev 1 | 5h |
 | Dispute respond (contractor) | Dev 1 | 3h |
+| Digital Wage Wallet Backend Services | Dev 1 | 5h |
 | Dispute resolve (inspector) | Dev 2 | 5h |
 | Inspector Dashboard (stats + charts) | Dev 2 | 8h |
 | Dispute queue UI | Dev 3 | 4h |
 | Audit log viewer UI | Dev 3 | 4h |
+| Digital Wage Wallet UI | Dev 3 | 5h |
 | District analytics | Dev 4 | 4h |
 | Integration testing (API) | Dev 4 | 6h |
 
-**Deliverable:** Full dispute workflow. Inspector dashboard with charts. Audit log viewable.
+**Deliverable:** Wallet active. Full dispute workflow. Inspector dashboard with charts. Audit log viewable.
 
 #### Sprint 6: Integration & Polish (Week 11-12)
+
+> **Protected Time:** No new features allowed in this sprint to mitigate integration risks (R-1).
 
 | Task | Owner | Est. |
 |---|---|---|
@@ -2881,7 +2975,7 @@ Full end-to-end walkthrough rehearsed at least 3 times before final demo. See Se
 | Presentation slides | Dev 2 | 4h |
 | Final deployment + smoke test | All | 3h |
 
-**Deliverable:** Demo-ready product. All 14 modules working end-to-end. Documentation complete.
+**Deliverable:** Demo-ready product. All 15 modules working end-to-end. Documentation complete.
 
 ### 16.2 Gantt Chart (Simplified)
 
@@ -2896,7 +2990,7 @@ Week:  1  2  3  4  5  6  7  8  9  10  11  12
                       ├─────┤
                       Payments + Passport + i18n
                             ├─────┤
-                            Disputes + Inspector
+                            Wallet + Disputes + Inspector
                                   ├─────┤
                                   Integration + Polish + Demo
 ```
@@ -2905,9 +2999,9 @@ Week:  1  2  3  4  5  6  7  8  9  10  11  12
 
 | Developer | Modules | Rationale |
 |---|---|---|
-| Dev 1 | Auth, Worker Profile, Attendance, Payment Ledger | Core data flows |
+| Dev 1 | Auth, Worker Profile, Attendance, Payments, Wallet Backend | Core data flows |
 | Dev 2 | Projects, QR Contracts, GPS/Haversine, Inspector Dashboard | Spatial + analytics |
-| Dev 3 | Worker Dashboard, Passport PDF, Dispute UI, E2E tests | Worker-facing + testing |
+| Dev 3 | Worker Dashboard, Passport PDF, Dispute UI, Wallet UI, E2E | Worker-facing + testing |
 | Dev 4 | Supervisor Dashboard, Notifications, Audit Log, i18n, CI/CD | Cross-cutting + infra |
 
 > **Note:** Each developer owns their modules end-to-end (frontend + backend + DB). No "frontend person" / "backend person" split.
@@ -3148,6 +3242,45 @@ Week:  1  2  3  4  5  6  7  8  9  10  11  12
 | Contract Labour Act, 1970 | Contractor-worker relationship context |
 | NSS 76th Round (2019-20) | Unorganized sector data |
 | Periodic Labour Force Survey | Employment statistics |
+
+---
+
+<a id="23"></a>
+## 23. Scope Validation & Checklists
+
+### Scope Validation
+
+**Question**: "Can 4 engineering students realistically implement the complete Semester 1 MVP, including QR contracts, GPS attendance verification, multilingual UI, wage calculation, Digital Wage Wallet, disputes, Employment Passport, and Inspector Dashboard within 12 weeks?"
+
+**Assessment**: The addition of the Digital Wage Wallet (M-15) expands the workload and creates significant pressure on Sprint 5 (Week 9-10). To strictly protect the integration and polish period in Sprint 6 (Week 11-12) as mandated by Risk R-1, the Wallet has been compressed into Sprint 5 alongside Disputes and the Inspector Dashboard. 
+Analyzing the task hours: Sprint 5 now assigns 13 hours to Dev 1, 13 hours to Dev 2, 13 hours to Dev 3, and 10 hours to Dev 4. While this appears to fit within the historical paper estimates (e.g., Dev 1's 16h in Sprint 3), paper estimates do not account for the real-world debugging and integration friction we already experienced during the Day 2 Auth module build. Realistically, 13-hour estimates often overrun into 20+ hours when cross-module bugs arise, making Sprint 5 highly vulnerable to slipping.
+
+**Recommendation for timeline safety**: Given the real risk of estimates overrunning due to integration friction, the team must avoid letting feature work spill into Week 11 under any circumstances. If Sprint 5 is running behind by the midpoint (end of Week 9), the team must enact a concrete fallback: District Analytics (Dev 4's lowest-priority task) should be cut immediately, and Dev 4's time redirected to assist with Wallet/Dispute integration. The Wallet provides critical cohesion for the worker's payment workflow and should be prioritized over analytical charts.
+
+### Semester 1 Final MVP Checklist
+
+- [ ] Authentication & RBAC (Worker, Contractor, Supervisor, Inspector)
+- [ ] Worker Profile & Contractor Dashboard
+- [ ] Project Creation & QR Job Contract Generation
+- [ ] Worker Contract Acceptance
+- [ ] PIN-based Attendance + GPS Geofencing
+- [ ] Automatic Wage Calculator
+- [ ] Payment Ledger
+- [ ] Digital Wage Wallet (Internal Ledger)
+- [ ] Employment Passport (PDF Generation)
+- [ ] Dispute Management System
+- [ ] Inspector Dashboard
+- [ ] Cross-cutting: Notifications, Audit Logs, Multilingual Support (EN, HI, MR)
+
+### Future Scope Checklist
+
+- [ ] Real financial wallets and UPI / Payment Gateway integration
+- [ ] Aadhaar and e-Shram API integration for identity verification
+- [ ] Biometric or photo-based attendance
+- [ ] SMS Gateway for notifications
+- [ ] Automated risk scoring / Machine Learning models
+- [ ] Escrow payments for disputes
+- [ ] Blockchain audit trail
 
 ---
 
